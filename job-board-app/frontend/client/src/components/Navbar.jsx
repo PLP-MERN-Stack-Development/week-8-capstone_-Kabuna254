@@ -9,7 +9,7 @@ function Navbar() {
           JobBoard
         </Link>
         <div className="space-x-4">
-          <Link to="/pages/login">Login</Link>
+          <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
         </div>
         <DarkModeToggle />

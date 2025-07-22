@@ -1,34 +1,39 @@
-const Application = require('../models/Application');
-const Job = require('../models/Job');
-
-exports.applyForJob = async (req, res) => {
-  const { jobId, resumeLink, coverLetter } = req.body;
+// Delete an Application
+exports.deleteApplication = async (req, res) => {
   try {
-    const application = await Application.create({
-      jobId,
-      applicantId: req.user._id,
-      resumeLink,
-      coverLetter
-    });
-    res.status(201).json(application);
+    const application = await Application.findById(req.params.applicationId).populate('jobId');
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    const isApplicant = application.applicantId.toString() === req.user._id.toString();
+    const isEmployer = application.jobId?.postedBy?.toString() === req.user._id.toString();
+
+    if (!isApplicant && !isEmployer) {
+      return res.status(403).json({ message: 'Not authorized to delete this application' });
+    }
+
+    await application.deleteOne();
+    res.json({ message: 'Application deleted successfully' });
+
   } catch (error) {
-    res.status(500).json({ message: 'Application submission failed' });
+    console.error('Delete Application Error:', error.message);
+    res.status(500).json({ message: 'Failed to delete application' });
   }
 };
-
-exports.getMyApplications = async (req, res) => {
-  const applications = await Application.find({ applicantId: req.user._id }).populate('jobId');
-  res.json(applications);
-};
-
+// Get Applications for a Job
 exports.getApplicationsForJob = async (req, res) => {
-  const job = await Job.findById(req.params.jobId);
-  if (!job) return res.status(404).json({ message: 'Job not found' });
+  try {
+    const job = await Job.findById(req.params.jobId).populate('applications');
 
-  if (job.postedBy.toString() !== req.user._id.toString()) {
-    return res.status(401).json({ message: 'Not authorized to view applications for this job' });
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.json(job.applications);
+  } catch (error) {
+    console.error('Get Applications for Job Error:', error.message);
+    res.status(500).json({ message: 'Failed to retrieve applications' });
   }
-
-  const applications = await Application.find({ jobId: req.params.jobId }).populate('applicantId');
-  res.json(applications);
-};
+} 

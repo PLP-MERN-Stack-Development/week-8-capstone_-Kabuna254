@@ -6,7 +6,9 @@ import { useNavigate } from "react-router-dom";
 import { authService } from "@/api/authService";
 
 function Login() {
+  const [role, setRole] = useState("jobseeker");
   const [email, setEmail] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -17,15 +19,21 @@ function Login() {
     setLoading(true);
     setError("");
 
+    const credentials = {
+      role,
+      password,
+      email: role === "employer" ? companyEmail : email,
+    };
+
     try {
-      await authService.login({ email, password });
+      await authService.login(credentials);
 
       const user = authService.getCurrentUser();
 
       if (user.role === "employer") {
         navigate("/employer/dashboard");
       } else {
-        navigate("/"); // Jobseeker goes to home (or another page)
+        navigate("/"); // Or another route for jobseeker
       }
 
     } catch (err) {
@@ -43,16 +51,44 @@ function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <Label htmlFor="role">Login as</Label>
+          <select
+            id="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="block w-full border rounded p-2 mt-1"
+          >
+            <option value="jobseeker">Jobseeker</option>
+            <option value="employer">Employer</option>
+          </select>
         </div>
+
+        {role === "employer" ? (
+          <div>
+            <Label htmlFor="companyEmail">Company Email</Label>
+            <Input
+              id="companyEmail"
+              type="email"
+              placeholder="company@example.com"
+              value={companyEmail}
+              onChange={(e) => setCompanyEmail(e.target.value)}
+              required
+            />
+          </div>
+        ) : (
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
         <div>
           <Label htmlFor="password">Password</Label>
           <Input
@@ -64,6 +100,7 @@ function Login() {
             required
           />
         </div>
+
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </Button>
