@@ -1,6 +1,27 @@
-// Create a Job
 const Job = require('../models/Job');
 
+// Get All Jobs (Public)
+exports.getAllJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find().populate('postedBy', 'name email');
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch jobs' });
+  }
+};
+
+// Get Job by ID (Public)
+exports.getJobById = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id).populate('postedBy', 'name email');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json(job);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch job' });
+  }
+};
+
+// Create a Job (Employer Only)
 exports.createJob = async (req, res) => {
   if (req.user.role !== 'employer') {
     return res.status(403).json({ message: 'Only employers can create jobs.' });
@@ -15,7 +36,7 @@ exports.createJob = async (req, res) => {
   }
 };
 
-// Update Job
+// Update Job (Employer Only)
 exports.updateJob = async (req, res) => {
   if (req.user.role !== 'employer') {
     return res.status(403).json({ message: 'Only employers can update jobs.' });
@@ -32,13 +53,12 @@ exports.updateJob = async (req, res) => {
     Object.assign(job, req.body);
     await job.save();
     res.json(job);
-
   } catch (error) {
     res.status(500).json({ message: 'Failed to update job' });
   }
 };
 
-// Delete Job
+// Delete Job (Employer Only)
 exports.deleteJob = async (req, res) => {
   if (req.user.role !== 'employer') {
     return res.status(403).json({ message: 'Only employers can delete jobs.' });
@@ -54,7 +74,6 @@ exports.deleteJob = async (req, res) => {
 
     await job.deleteOne();
     res.json({ message: 'Job deleted successfully' });
-
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete job' });
   }
