@@ -2,9 +2,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import JobDetails from './pages/JobDetails';
 import CreateJob from './pages/CreateJob';
-import Layout from './components/Layout';
+import Layout from './components/AppLayout';
+import ALayout from './components/AuthLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword'; 
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -38,20 +40,29 @@ function App() {
           }
         />
 
+        {/* Authentication Routes */}
         <Route
           path="/login"
           element={
-            <Layout>
+            <ALayout>
               <Login />
-            </Layout>
+            </ALayout>
           }
         />
         <Route
           path="/register"
           element={
-            <Layout>
+            <ALayout>
               <Register />
-            </Layout>
+            </ALayout>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <ALayout>
+              <ForgotPassword />
+            </ALayout>
           }
         />
       </Routes>

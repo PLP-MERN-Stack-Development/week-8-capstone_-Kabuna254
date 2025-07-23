@@ -1,82 +1,110 @@
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const generateToken = (userId, role) => {
+  return jwt.sign(
+    { id: userId, role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
 };
 
-// Register
 exports.register = async (req, res) => {
-  const { name, email, password, role, companyName, companyEmail, companyWebsite } = req.body;
-
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUserData = {
-      name,
-      email,
-      passwordHash: hashedPassword,
-      role,
-    };
-
-    if (role === 'employer') {
-      newUserData.companyName = companyName || null;
-      newUserData.companyEmail = companyEmail || null;
-      newUserData.companyWebsite = companyWebsite || null;
-    }
-
-    const user = new User(newUserData);
+    // Create user with plain password (virtual will handle hashing)
+    const user = new User(req.body);
     await user.save();
 
+    // Generate token
+    const token = generateToken(user._id, user.role);
+
+    // Get user object without passwordHash
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      companyName: user.companyName || null,
-      companyEmail: user.companyEmail || null,
-      companyWebsite: user.companyWebsite || null,
-      token: generateToken(user._id),
+      success: true,
+      token,
+      user: userObj
     });
 
-  } catch (err) {
-    console.error('Registration Error:', err.message);
-    res.status(500).json({ message: 'Registration failed' });
+  } catch (error) {
+    console.error('Registration error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+    
+    // Handle duplicate email
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed'
+    });
   }
 };
 
-// Login
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    // Find user with password hash
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+                          .select('+passwordHash');
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
     }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user._id, user.role);
+
+    // Prepare response
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
 
     res.json({
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      companyName: user.companyName || null,
-      companyEmail: user.companyEmail || null,
-      companyWebsite: user.companyWebsite || null,
-      token: generateToken(user._id),
+      success: true,
+      token,
+      user: userObj
     });
 
-  } catch (err) {
-    console.error('Login Error:', err.message);
-    res.status(500).json({ message: 'Login failed' });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Login failed'
+    });
   }
 };

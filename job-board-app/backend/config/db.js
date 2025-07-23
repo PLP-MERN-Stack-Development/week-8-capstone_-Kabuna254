@@ -2,22 +2,22 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // Validate connection string
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable not set');
+    }
 
-    console.log('MongoDB Connected');
+    // Remove deprecated options and simplify connection
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Using Database: ${conn.connection.db.databaseName}`);
+    
+    return conn;
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error.message);
+    console.error('MongoDB Connection Error:', error.message);    
     process.exit(1);
   }
 };
-
-// Handle unhandled promise rejections globally
-process.on('unhandledRejection', (error) => {
-  console.error(`Unhandled Rejection: ${error.message}`);
-  mongoose.connection.close(() => process.exit(1));
-});
 
 module.exports = connectDB;

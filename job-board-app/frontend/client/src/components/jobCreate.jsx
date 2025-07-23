@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { jobService, authService } from '../api/apiService'; // Adjust the import path as necessary
+import { jobService } from '../api/jobService';
+import { authService } from '../api/authService';
 
 const JobCreate = () => {
   const [title, setTitle] = useState('');
