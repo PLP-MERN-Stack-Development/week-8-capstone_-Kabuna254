@@ -98,9 +98,9 @@ coming soon
 
 ## Live Demo / App URL
 
-Frontend (React/Vite App): []()
+Frontend (React/Vite App): [jobboardapp-025.vercel.app](jobboardapp-025.vercel.app)
 
-API Backend (Hosted): *coming soon or update with Render/Glitch link*
+API Backend (Hosted): *coming soon*
 
 ## License
 
